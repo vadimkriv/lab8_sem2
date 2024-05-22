@@ -1,53 +1,51 @@
 #include <iostream>
-template<class T>
+
+template <typename T>
 class MyUnique {
-    T * p;
 public:
-    explicit MyUnique(T *p = nullptr) : p(p) {}
-    ~MyUnique() {
-        delete p;
+  T* p = nullptr;
+
+  MyUnique(T* ptr) : p(ptr) {}
+  ~MyUnique() { delete p; }
+
+  T* get() const { return p; }
+  T& operator*() { return *p; }
+  T* operator->() { return p; }
+
+  MyUnique(MyUnique&& other) noexcept {
+    p = other.p;
+    other.p = nullptr;
+  }
+  MyUnique& operator=(MyUnique&& other) noexcept {
+    if (this != &other) {
+      delete p;
+      p = other.p;
+      other.p = nullptr;
     }
-    MyUnique(const MyUnique&) = delete;
-    MyUnique& operator=(const MyUnique&) = delete;
-    MyUnique(MyUnique&& other) noexcept : p(other.p) {
-        other.p = nullptr;
-    }
-    MyUnique& operator=(MyUnique&& other) noexcept {
-        if (this != &other) {
-            delete p;
-            p = other.p;
-            other.p = nullptr;
-        }
-        return *this;
-    }
-    T * get() const {
-        return p;
-    }
-    T & operator*() {
-        return *p;
-    }
-    T * operator->() {
-        return p;
-    }
+    return *this;
+  }
 };
-template<typename T, typename... Args>
-MyUnique<T> Make_MyUnique(Args&&... args) {
-    return MyUnique<T>(new T(std::forward<Args>(args)...));
+
+// Функция Make_MyUnique
+template <typename T>
+MyUnique<T> Make_MyUnique(T* ptr) {
+  return MyUnique<T>(ptr);
 }
-class MyPoint {
-    int x, y;
-public:
-    MyPoint(int x, int y) : x(x), y(y) {
-        std::cout << "MyPoint(int x, int y): x=" << x << " y=" << y << std::endl;
-    }
-};
+
+// Пример использования в main
 int main() {
-    auto p1 = Make_MyUnique<MyPoint>(5, 10);
-    std::cout << "Point: " << p1->x << ", " << p1->y << std::endl;
-    MyUnique<MyPoint> p2 = std::move(p1);
-    if (p1.get() == nullptr) {
-        std::cout << "p1 is null after move" << std::endl;
-    }
-    std::cout << "Point: " << p2->x << ", " << p2->y << std::endl;
-    return 0;
+  class MyPoint {
+  public:
+    int x, y;
+
+    MyPoint(int x_, int y_) : x(x_), y(y_) {}
+  };
+
+  MyUnique<MyPoint> ptr = Make_MyUnique(new MyPoint(5, 10));
+
+  std::cout << ptr->x << " " << ptr->y << std::endl;
+  (*ptr).x = 15;
+  std::cout << ptr->x << " " << ptr->y << std::endl;
+
+  return 0;
 }
